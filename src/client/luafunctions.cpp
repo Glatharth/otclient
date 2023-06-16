@@ -151,9 +151,9 @@ void Client::registerLuaFunctions()
 
 #ifdef FRAMEWORK_EDITOR
     g_lua.bindSingletonFunction("g_map", "loadOtbm", &Map::loadOtbm, &g_map);
-    g_lua.bindSingletonFunction("g_map", "saveOtbm", &Map::saveOtbm, &g_map);
+    // g_lua.bindSingletonFunction("g_map", "saveOtbm", &Map::saveOtbm, &g_map);
     g_lua.bindSingletonFunction("g_map", "loadOtcm", &Map::loadOtcm, &g_map);
-    g_lua.bindSingletonFunction("g_map", "saveOtcm", &Map::saveOtcm, &g_map);
+    // g_lua.bindSingletonFunction("g_map", "saveOtcm", &Map::saveOtcm, &g_map);
     g_lua.bindSingletonFunction("g_map", "getHouseFile", &Map::getHouseFile, &g_map);
     g_lua.bindSingletonFunction("g_map", "setHouseFile", &Map::setHouseFile, &g_map);
     g_lua.bindSingletonFunction("g_map", "getSpawnFile", &Map::getSpawnFile, &g_map);

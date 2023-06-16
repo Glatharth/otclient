@@ -236,173 +236,173 @@ void Map::loadOtbm(const std::string& fileName)
     }
 }
 
-void Map::saveOtbm(const std::string& fileName)
-{
-    try {
-        const FileStreamPtr fin = g_resources.createFile(fileName);
-        if (!fin)
-            throw Exception("failed to open file '%s' for write", fileName);
+// void Map::saveOtbm(const std::string& fileName)
+// {
+//     try {
+//         const FileStreamPtr fin = g_resources.createFile(fileName);
+//         if (!fin)
+//             throw Exception("failed to open file '%s' for write", fileName);
 
-        fin->cache();
-        std::string dir;
-        if (fileName.find_last_of('/') == std::string::npos)
-            dir = g_resources.getWorkDir();
-        else
-            dir = fileName.substr(0, fileName.find_last_of('/'));
+//         fin->cache();
+//         std::string dir;
+//         if (fileName.find_last_of('/') == std::string::npos)
+//             dir = g_resources.getWorkDir();
+//         else
+//             dir = fileName.substr(0, fileName.find_last_of('/'));
 
-        uint32_t version = 0;
-        if (g_things.getOtbMajorVersion() < ClientVersion820)
-            version = 1;
-        else
-            version = 2;
+//         uint32_t version = 0;
+//         if (g_things.getOtbMajorVersion() < ClientVersion820)
+//             version = 1;
+//         else
+//             version = 2;
 
-        /// Usually when a map has empty house/spawn file it means the map is new.
-        /// TODO: Ask the user for a map name instead of those ugly uses of substr
-        std::string::size_type sep_pos;
-        std::string houseFile = getHouseFile();
-        std::string spawnFile = getSpawnFile();
-        std::string cpyf;
+//         /// Usually when a map has empty house/spawn file it means the map is new.
+//         /// TODO: Ask the user for a map name instead of those ugly uses of substr
+//         std::string::size_type sep_pos;
+//         std::string houseFile = getHouseFile();
+//         std::string spawnFile = getSpawnFile();
+//         std::string cpyf;
 
-        if ((sep_pos = fileName.rfind('.')) != std::string::npos && fileName.ends_with(".otbm"))
-            cpyf = fileName.substr(0, sep_pos);
+//         if ((sep_pos = fileName.rfind('.')) != std::string::npos && fileName.ends_with(".otbm"))
+//             cpyf = fileName.substr(0, sep_pos);
 
-        if (houseFile.empty())
-            houseFile = cpyf + "-houses.xml";
+//         if (houseFile.empty())
+//             houseFile = cpyf + "-houses.xml";
 
-        if (spawnFile.empty())
-            spawnFile = cpyf + "-spawns.xml";
+//         if (spawnFile.empty())
+//             spawnFile = cpyf + "-spawns.xml";
 
-        /// we only need the filename to save to, the directory should be resolved by the OTBM loader not here
-        if ((sep_pos = spawnFile.rfind('/')) != std::string::npos)
-            spawnFile = spawnFile.substr(sep_pos + 1);
+//         /// we only need the filename to save to, the directory should be resolved by the OTBM loader not here
+//         if ((sep_pos = spawnFile.rfind('/')) != std::string::npos)
+//             spawnFile = spawnFile.substr(sep_pos + 1);
 
-        if ((sep_pos = houseFile.rfind('/')) != std::string::npos)
-            houseFile = houseFile.substr(sep_pos + 1);
+//         if ((sep_pos = houseFile.rfind('/')) != std::string::npos)
+//             houseFile = houseFile.substr(sep_pos + 1);
 
-        fin->addU32(0); // file version
-        const auto& root = std::make_shared<OutputBinaryTree>(fin);
-        {
-            root->addU32(version);
+//         fin->addU32(0); // file version
+//         const auto& root = std::make_shared<OutputBinaryTree>(fin);
+//         {
+//             root->addU32(version);
 
-            const Size mapSize = getSize();
-            root->addU16(mapSize.width());
-            root->addU16(mapSize.height());
+//             const Size mapSize = getSize();
+//             root->addU16(mapSize.width());
+//             root->addU16(mapSize.height());
 
-            root->addU32(g_things.getOtbMajorVersion());
-            root->addU32(g_things.getOtbMinorVersion());
+//             root->addU32(g_things.getOtbMajorVersion());
+//             root->addU32(g_things.getOtbMinorVersion());
 
-            root->startNode(OTBM_MAP_DATA);
-            {
-                root->addU8(OTBM_ATTR_DESCRIPTION);
-                root->addString(m_desc);
+//             root->startNode(OTBM_MAP_DATA);
+//             {
+//                 root->addU8(OTBM_ATTR_DESCRIPTION);
+//                 root->addString(m_desc);
 
-                root->addU8(OTBM_ATTR_SPAWN_FILE);
-                root->addString(spawnFile);
+//                 root->addU8(OTBM_ATTR_SPAWN_FILE);
+//                 root->addString(spawnFile);
 
-                root->addU8(OTBM_ATTR_HOUSE_FILE);
-                root->addString(houseFile);
+//                 root->addU8(OTBM_ATTR_HOUSE_FILE);
+//                 root->addString(houseFile);
 
-                int px = -1;
-                int py = -1;
-                int pz = -1;
-                bool firstNode = true;
+//                 int px = -1;
+//                 int py = -1;
+//                 int pz = -1;
+//                 bool firstNode = true;
 
-                for (uint8_t z = 0; z <= g_gameConfig.getMapMaxZ(); ++z) {
-                    for (const auto& it : m_tileBlocks[z]) {
-                        const TileBlock& block = it.second;
-                        for (const TilePtr& tile : block.getTiles()) {
-                            if (unlikely(!tile || tile->isEmpty()))
-                                continue;
+//                 for (uint8_t z = 0; z <= g_gameConfig.getMapMaxZ(); ++z) {
+//                     for (const auto& it : TileBlock[z]) {
+//                         const TileBlock& block = it.second;
+//                         for (const TilePtr& tile : block.getTiles()) {
+//                             if (unlikely(!tile || tile->isEmpty()))
+//                                 continue;
 
-                            const Position& pos = tile->getPosition();
-                            if (unlikely(!pos.isValid()))
-                                continue;
+//                             const Position& pos = tile->getPosition();
+//                             if (unlikely(!pos.isValid()))
+//                                 continue;
 
-                            if (pos.x < px || pos.x >= px + 256
-                                || pos.y < py || pos.y >= py + 256
-                                || pos.z != pz) {
-                                if (!firstNode)
-                                    root->endNode(); /// OTBM_TILE_AREA
+//                             if (pos.x < px || pos.x >= px + 256
+//                                 || pos.y < py || pos.y >= py + 256
+//                                 || pos.z != pz) {
+//                                 if (!firstNode)
+//                                     root->endNode(); /// OTBM_TILE_AREA
 
-                                firstNode = false;
-                                root->startNode(OTBM_TILE_AREA);
+//                                 firstNode = false;
+//                                 root->startNode(OTBM_TILE_AREA);
 
-                                px = pos.x & 0xFF00;
-                                py = pos.y & 0xFF00;
-                                pz = pos.z;
-                                root->addPos(px, py, pz);
-                            }
+//                                 px = pos.x & 0xFF00;
+//                                 py = pos.y & 0xFF00;
+//                                 pz = pos.z;
+//                                 root->addPos(px, py, pz);
+//                             }
 
-                            root->startNode(tile->isHouseTile() ? OTBM_HOUSETILE : OTBM_TILE);
-                            root->addPoint(Point(pos.x, pos.y) & 0xFF);
-                            if (tile->isHouseTile())
-                                root->addU32(tile->getHouseId());
+//                             root->startNode(tile->isHouseTile() ? OTBM_HOUSETILE : OTBM_TILE);
+//                             root->addPoint(Point(pos.x, pos.y) & 0xFF);
+//                             if (tile->isHouseTile())
+//                                 root->addU32(tile->getHouseId());
 
-                            if (tile->getFlags()) {
-                                root->addU8(OTBM_ATTR_TILE_FLAGS);
-                                root->addU32(tile->getFlags());
-                            }
+//                             if (tile->getFlags()) {
+//                                 root->addU8(OTBM_ATTR_TILE_FLAGS);
+//                                 root->addU32(tile->getFlags());
+//                             }
 
-                            const auto& itemList = tile->getItems();
-                            const ItemPtr& ground = tile->getGround();
-                            if (ground) {
-                                // Those types are called "complex" needs other stuff to be written.
-                                // For containers, there is container items, for depot, depot it and so on.
-                                if (!ground->isContainer() && !ground->isDepot()
-                                    && !ground->isDoor() && !ground->isTeleport()) {
-                                    root->addU8(OTBM_ATTR_ITEM);
-                                    root->addU16(ground->getServerId());
-                                } else
-                                    ground->serializeItem(root);
-                            }
-                            for (const ItemPtr& item : itemList)
-                                if (!item->isGround())
-                                    item->serializeItem(root);
+//                             const auto& itemList = tile->getItems();
+//                             const ItemPtr& ground = tile->getGround();
+//                             if (ground) {
+//                                 // Those types are called "complex" needs other stuff to be written.
+//                                 // For containers, there is container items, for depot, depot it and so on.
+//                                 if (!ground->isContainer() && !ground->isDepot()
+//                                     && !ground->isDoor() && !ground->isTeleport()) {
+//                                     root->addU8(OTBM_ATTR_ITEM);
+//                                     root->addU16(ground->getServerId());
+//                                 } else
+//                                     ground->serializeItem(root);
+//                             }
+//                             for (const ItemPtr& item : itemList)
+//                                 if (!item->isGround())
+//                                     item->serializeItem(root);
 
-                            root->endNode(); // OTBM_TILE
-                        }
-                    }
-                }
+//                             root->endNode(); // OTBM_TILE
+//                         }
+//                     }
+//                 }
 
-                if (!firstNode)
-                    root->endNode();  // OTBM_TILE_AREA
+//                 if (!firstNode)
+//                     root->endNode();  // OTBM_TILE_AREA
 
-                root->startNode(OTBM_TOWNS);
-                for (const TownPtr& town : g_towns.getTowns()) {
-                    root->startNode(OTBM_TOWN);
+//                 root->startNode(OTBM_TOWNS);
+//                 for (const TownPtr& town : g_towns.getTowns()) {
+//                     root->startNode(OTBM_TOWN);
 
-                    root->addU32(town->getId());
-                    root->addString(town->getName());
+//                     root->addU32(town->getId());
+//                     root->addString(town->getName());
 
-                    const Position townPos = town->getPos();
-                    root->addPos(townPos.x, townPos.y, townPos.z);
-                    root->endNode();
-                }
-                root->endNode();
+//                     const Position townPos = town->getPos();
+//                     root->addPos(townPos.x, townPos.y, townPos.z);
+//                     root->endNode();
+//                 }
+//                 root->endNode();
 
-                if (version > 1) {
-                    root->startNode(OTBM_WAYPOINTS);
-                    for (const auto& it : m_waypoints) {
-                        root->startNode(OTBM_WAYPOINT);
-                        root->addString(it.second);
+//                 if (version > 1) {
+//                     root->startNode(OTBM_WAYPOINTS);
+//                     for (const auto& it : m_waypoints) {
+//                         root->startNode(OTBM_WAYPOINT);
+//                         root->addString(it.second);
 
-                        const Position pos = it.first;
-                        root->addPos(pos.x, pos.y, pos.z);
-                        root->endNode();
-                    }
-                    root->endNode();
-                }
-            }
-            root->endNode(); // OTBM_MAP_DATA
-        }
-        root->endNode();
+//                         const Position pos = it.first;
+//                         root->addPos(pos.x, pos.y, pos.z);
+//                         root->endNode();
+//                     }
+//                     root->endNode();
+//                 }
+//             }
+//             root->endNode(); // OTBM_MAP_DATA
+//         }
+//         root->endNode();
 
-        fin->flush();
-        fin->close();
-    } catch (const std::exception& e) {
-        g_logger.error(stdext::format("Failed to save '%s': %s", fileName, e.what()));
-    }
-}
+//         fin->flush();
+//         fin->close();
+//     } catch (const std::exception& e) {
+//         g_logger.error(stdext::format("Failed to save '%s': %s", fileName, e.what()));
+//     }
+// }
 
 bool Map::loadOtcm(const std::string& fileName)
 {
@@ -481,74 +481,74 @@ bool Map::loadOtcm(const std::string& fileName)
     }
 }
 
-void Map::saveOtcm(const std::string& fileName)
-{
-    try {
-        stdext::timer saveTimer;
+// void Map::saveOtcm(const std::string& fileName)
+// {
+//     try {
+//         stdext::timer saveTimer;
 
-        const FileStreamPtr fin = g_resources.createFile(fileName);
-        fin->cache();
+//         const FileStreamPtr fin = g_resources.createFile(fileName);
+//         fin->cache();
 
-        //TODO: compression flag with zlib
-        const uint32_t flags = 0;
+//         //TODO: compression flag with zlib
+//         const uint32_t flags = 0;
 
-        // header
-        fin->addU32(OTCM_SIGNATURE);
-        fin->addU16(0); // data start, will be overwritten later
-        fin->addU16(OTCM_VERSION);
-        fin->addU32(flags);
+//         // header
+//         fin->addU32(OTCM_SIGNATURE);
+//         fin->addU16(0); // data start, will be overwritten later
+//         fin->addU16(OTCM_VERSION);
+//         fin->addU32(flags);
 
-        // version 1 header
-        fin->addString("OTCM 1.0"); // map description
-        fin->addU32(g_things.getDatSignature());
-        fin->addU16(g_game.getClientVersion());
-        fin->addString(g_game.getWorldName());
+//         // version 1 header
+//         fin->addString("OTCM 1.0"); // map description
+//         fin->addU32(g_things.getDatSignature());
+//         fin->addU16(g_game.getClientVersion());
+//         fin->addString(g_game.getWorldName());
 
-        // go back and rewrite where the map data starts
-        const uint32_t start = fin->tell();
-        fin->seek(4);
-        fin->addU16(start);
-        fin->seek(start);
+//         // go back and rewrite where the map data starts
+//         const uint32_t start = fin->tell();
+//         fin->seek(4);
+//         fin->addU16(start);
+//         fin->seek(start);
 
-        for (uint8_t z = 0; z <= g_gameConfig.getMapMaxZ(); ++z) {
-            for (const auto& it : m_tileBlocks[z]) {
-                const TileBlock& block = it.second;
-                for (const TilePtr& tile : block.getTiles()) {
-                    if (!tile || tile->isEmpty())
-                        continue;
+//         for (uint8_t z = 0; z <= g_gameConfig.getMapMaxZ(); ++z) {
+//             for (const auto& it : TileBlock[z]) {
+//                 const TileBlock& block = it.second;
+//                 for (const TilePtr& tile : block.getTiles()) {
+//                     if (!tile || tile->isEmpty())
+//                         continue;
 
-                    const Position pos = tile->getPosition();
-                    fin->addU16(pos.x);
-                    fin->addU16(pos.y);
-                    fin->addU8(pos.z);
+//                     const Position pos = tile->getPosition();
+//                     fin->addU16(pos.x);
+//                     fin->addU16(pos.y);
+//                     fin->addU8(pos.z);
 
-                    for (const ThingPtr& thing : tile->getThings()) {
-                        if (thing->isItem()) {
-                            const ItemPtr item = thing->static_self_cast<Item>();
-                            fin->addU16(item->getId());
-                            fin->addU8(item->getCountOrSubType());
-                        }
-                    }
+//                     for (const ThingPtr& thing : tile->getThings()) {
+//                         if (thing->isItem()) {
+//                             const ItemPtr item = thing->static_self_cast<Item>();
+//                             fin->addU16(item->getId());
+//                             fin->addU8(item->getCountOrSubType());
+//                         }
+//                     }
 
-                    // end of tile
-                    fin->addU16(0xFFFF);
-                }
-            }
-        }
+//                     // end of tile
+//                     fin->addU16(0xFFFF);
+//                 }
+//             }
+//         }
 
-        // end of file
-        const Position invalidPos;
-        fin->addU16(invalidPos.x);
-        fin->addU16(invalidPos.y);
-        fin->addU8(invalidPos.z);
+//         // end of file
+//         const Position invalidPos;
+//         fin->addU16(invalidPos.x);
+//         fin->addU16(invalidPos.y);
+//         fin->addU8(invalidPos.z);
 
-        fin->flush();
+//         fin->flush();
 
-        fin->close();
-    } catch (const stdext::exception& e) {
-        g_logger.error(stdext::format("failed to save OTCM map: %s", e.what()));
-    }
-}
+//         fin->close();
+//     } catch (const stdext::exception& e) {
+//         g_logger.error(stdext::format("failed to save OTCM map: %s", e.what()));
+//     }
+// }
 
 #endif
 /* vim: set ts=4 sw=4 et: */
